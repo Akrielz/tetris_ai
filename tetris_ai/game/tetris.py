@@ -59,21 +59,25 @@ class TetrisEnv:
 
     def step(self, action: Action):
         if action == Action.LEFT:
-            self.current_shape.move_shape(np.array([0, -1]))
+            self.current_shape.move(np.array([0, -1]))
 
         elif action == Action.RIGHT:
-            self.current_shape.move_shape(np.array([0, 1]))
+            self.current_shape.move(np.array([0, 1]))
 
         elif action == Action.DOWN:
-            self.current_shape.move_shape(np.array([1, 0]))
+            if self.current_shape.can_move_down():
+                self.current_shape.move(np.array([1, 0]))
+            else:
+                self.current_shape.place()
+                self.current_shape = self.generate_random_shape()
 
         elif action == Action.ROTATE:
             self.current_shape.rotate(is_clockwise=True)
 
         elif action == Action.DROP:
             while self.current_shape.can_move_down():
-                self.current_shape.move_shape(np.array([1, 0]))
-            self.current_shape.place_shape()
+                self.current_shape.move(np.array([1, 0]))
+            self.current_shape.place()
             self.current_shape = self.generate_random_shape()
 
         elif action == Action.NOOP:
@@ -102,7 +106,7 @@ class TetrisEnv:
                 elif col == 1:
                     display_string += "[█]"
                 else:
-                    display_string += "[~]"
+                    display_string += "   "
             display_string += "\n"
 
         # Print the display matrix

@@ -28,21 +28,21 @@ class Shape:
         self.dead = False
         self.blocks_position = self.shape_id.blocks_position + self.current_position
 
-    def can_move(self, direction: Vector2) -> bool:
+    def _can_move(self, direction: Vector2) -> bool:
         new_positions = self.blocks_position + direction
         return self.board.are_free(new_positions)
 
     def can_move_down(self) -> bool:
-        return self.can_move(np.array([1, 0]))
+        return self._can_move(np.array([1, 0]))
 
-    def move_shape(self, direction: Vector2):
-        if not self.can_move(direction):
+    def move(self, direction: Vector2):
+        if not self._can_move(direction):
             return
 
         self.current_position += direction
         self.blocks_position = self.blocks_position + direction
 
-    def simulate_rotation(self, is_clockwise: bool) -> ListVector2:
+    def _simulate_rotation(self, is_clockwise: bool) -> ListVector2:
         block_positions = self.blocks_position.copy()
         starting_positions = block_positions - self.current_position
 
@@ -56,22 +56,22 @@ class Shape:
 
         rotated_positions += self.current_position
 
-        rounded_rotated_positions = np.round(rotated_positions)
+        rounded_rotated_positions = np.round(rotated_positions).astype(int)
         return rounded_rotated_positions
 
-    def can_rotate(self, is_clockwise: bool) -> bool:
-        rotated_positions = self.simulate_rotation(is_clockwise)
+    def _can_rotate(self, is_clockwise: bool) -> bool:
+        rotated_positions = self._simulate_rotation(is_clockwise)
         return self.board.are_free(rotated_positions)
 
-    def place_shape(self):
+    def place(self):
         self.board[self.blocks_position[:, 0], self.blocks_position[:, 1]] = 1
         self.dead = True
 
     def rotate(self, is_clockwise: bool):
-        if not self.can_rotate(is_clockwise):
+        if not self._can_rotate(is_clockwise):
             return
 
-        self.blocks_position = self.simulate_rotation(is_clockwise)
+        self.blocks_position = self._simulate_rotation(is_clockwise)
 
     def __repr__(self):
         visual_matrix = np.zeros((4, 4))
@@ -132,7 +132,7 @@ class ShapeGenerator:
                 [1, 1],
                 [1, 2],
             ]),
-            rotation_point=np.array([0.0, 1.0]),
+            rotation_point=np.array([1.0, 0.0]),
         )
 
         # [XXXX]

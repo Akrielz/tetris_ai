@@ -11,6 +11,7 @@ def get_player_action():
         "w": Action.ROTATE,
         " ": Action.DROP,
         "n": Action.NOOP,
+        'q': Action.SWAP,
     }
 
     return input_map.get(input_action, Action.NOOP)
