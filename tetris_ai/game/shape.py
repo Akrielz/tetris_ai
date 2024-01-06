@@ -44,17 +44,14 @@ class Shape:
 
     def _simulate_rotation(self, is_clockwise: bool) -> ListVector2:
         block_positions = self.blocks_position.copy()
-        starting_positions = block_positions - self.current_position
 
         rotation_angle = 90 if is_clockwise else -90
 
         rotated_positions = rotate_points(
-            points=starting_positions,
+            points=block_positions,
             degrees=rotation_angle,
-            origin=self.shape_id.rotation_point,
+            origin=self.current_position + self.shape_id.rotation_point,
         )
-
-        rotated_positions += self.current_position
 
         rounded_rotated_positions = np.round(rotated_positions).astype(int)
         return rounded_rotated_positions
