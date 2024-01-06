@@ -49,7 +49,7 @@ class TetrisEnv:
 
         # Display the held shape
         if self.hold_shape is not None:
-            self.add_to_display_positions(self.hold_shape.blocks_position, self.held_shape_offset)
+            self.add_to_display_positions(self.hold_shape.shape_id.blocks_position, self.held_shape_offset)
 
         # Display the current shape
         self.add_to_display_positions(self.current_shape.blocks_position, self.board_offset)
@@ -82,6 +82,16 @@ class TetrisEnv:
 
         elif action == Action.NOOP:
             pass
+
+        elif action == Action.SWAP:
+            if self.hold_shape is None:
+                self.current_shape.reset()
+                self.hold_shape = self.current_shape
+                self.current_shape = self.generate_random_shape()
+            else:
+                self.current_shape.reset()
+                self.hold_shape.reset()
+                self.current_shape, self.hold_shape = self.hold_shape, self.current_shape
 
         self.update_display_matrix()
 

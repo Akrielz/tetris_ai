@@ -21,12 +21,24 @@ class Shape:
             position: Vector2,
             shape_id: ShapeID,
     ):
-        self.board = board
-        self.current_position = position.copy()
-        self.start_position = position.copy()
         self.shape_id = shape_id
-        self.dead = False
+
+        start_position = position.copy()
+        start_position[1] -= round(self.width / 2)
+
+        self.board = board
+        self.current_position = start_position.copy()
+        self.start_position = start_position.copy()
+        self.placed = False
         self.blocks_position = self.shape_id.blocks_position + self.current_position
+
+    @property
+    def width(self):
+        return self.shape_id.blocks_position[:, 1].max() + 1
+
+    @property
+    def height(self):
+        return self.shape_id.blocks_position[:, 0].max() + 1
 
     def _can_move(self, direction: Vector2) -> bool:
         new_positions = self.blocks_position + direction
@@ -62,13 +74,17 @@ class Shape:
 
     def place(self):
         self.board[self.blocks_position[:, 0], self.blocks_position[:, 1]] = 1
-        self.dead = True
+        self.placed = True
 
     def rotate(self, is_clockwise: bool):
         if not self._can_rotate(is_clockwise):
             return
 
         self.blocks_position = self._simulate_rotation(is_clockwise)
+
+    def reset(self):
+        self.current_position = self.start_position.copy()
+        self.blocks_position = self.shape_id.blocks_position + self.current_position
 
     def __repr__(self):
         visual_matrix = np.zeros((4, 4))
@@ -117,7 +133,7 @@ class ShapeGenerator:
                 [1, 1],
                 [1, 2],
             ]),
-            rotation_point=np.array([1.0, 0.0]),
+            rotation_point=np.array([1.0, 1.0]),
         )
 
         # [x  ]
@@ -129,7 +145,7 @@ class ShapeGenerator:
                 [1, 1],
                 [1, 2],
             ]),
-            rotation_point=np.array([1.0, 0.0]),
+            rotation_point=np.array([1.0, 1.0]),
         )
 
         # [XXXX]
