@@ -39,6 +39,9 @@ class Board:
 
         return np.all(self._placed_squares[positions[:, 0], positions[:, 1]] == 0)
 
+    def reset(self):
+        self._placed_squares.fill(0)
+
     @property
     def state(self):
         return self._placed_squares

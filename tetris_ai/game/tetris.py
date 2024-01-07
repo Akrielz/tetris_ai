@@ -1,5 +1,3 @@
-from time import sleep
-
 import numpy as np
 
 from tetris_ai.game.actions import Action
@@ -13,11 +11,9 @@ class TetrisEnv:
             self,
             width: int = 10,
             height: int = 22,
-            clock_speed: int = 0,  # in milliseconds
             num_next_shapes: int = 3,
     ):
         # Save clock speed
-        self.clock_speed = clock_speed
         self.num_next_shapes = num_next_shapes
 
         # Create the displayable parts
@@ -36,11 +32,26 @@ class TetrisEnv:
 
         # Prepare the pieces
         self.shape_generator = ShapeGenerator(self.board)
-        self.start_position = np.array([0, width // 2])
+        self.start_position = np.array([1, width // 2])
 
         self.current_shape = self.generate_random_shape()
         self.next_shapes = [self.generate_random_shape() for _ in range(num_next_shapes)]
         self.hold_shape = None
+
+        # Prepare the score
+        self.score = 0
+        self.done = False
+
+    def reset(self):
+        self.board.reset()
+        self.current_shape = self.generate_random_shape()
+        self.next_shapes = [self.generate_random_shape() for _ in range(self.num_next_shapes)]
+        self.hold_shape = None
+        self.score = 0
+        self.done = False
+
+        self.update_display_matrix()
+        return self.display_matrix  # return the state
 
     def add_to_display_positions(self, positions: ListVector2, offset: Vector2):
         self.display_matrix[positions[:, 0] + offset[0], positions[:, 1] + offset[1]] = 1
@@ -68,20 +79,29 @@ class TetrisEnv:
     def generate_random_shape(self):
         return self.shape_generator.generate_random_shape(self.start_position)
 
-    def clear_lines(self):
+    def check_clear_lines(self):
         ys = self.current_shape.blocks_position[:, 0]
+
+        num_cleared_lines = 0
         for y in ys:
             if np.all(self.board[y, :] == 1):
                 self.board[y, :] = 0
                 self.board[1:y+1, :] = self.board[:y, :]
                 self.board[0, :] = 0
+                num_cleared_lines += 1
+
+        self.score += num_cleared_lines ** 2
+
+    def check_defeat(self):
+        positions = self.current_shape.blocks_position
+        self.done = True if not self.board.are_free(positions) else False
 
     def place_shape(self):
         self.current_shape.place()
-        self.clear_lines()
-
+        self.check_clear_lines()
         self.current_shape = self.next_shapes.pop(0)
         self.next_shapes.append(self.generate_random_shape())
+        self.check_defeat()
 
     def process_action(self, action: Action):
         if action == Action.LEFT:
@@ -117,16 +137,19 @@ class TetrisEnv:
                 self.hold_shape.reset()
                 self.current_shape, self.hold_shape = self.hold_shape, self.current_shape
 
+    def prepare_outputs(self):
+        state = self.display_matrix
+        reward = self.score
+        done = self.done
+        info = {}
+
+        return state, reward, done, info
+
     def step(self, action: Action):
         self.process_action(action)
         self.update_display_matrix()
 
-        state = self.display_matrix
-        reward = 0
-        done = False
-        info = {}
-
-        return state, reward, done, info
+        return self.prepare_outputs()
 
     def render_console(self):
         # Clear screen the previous frame
@@ -147,6 +170,8 @@ class TetrisEnv:
 
         # Print the display matrix
         print(display_string)
+
+        print("Score: ", self.score)
 
         # sleep the ammount of time specified by the clock speed
         # sleep(self.clock_speed / 1000)
