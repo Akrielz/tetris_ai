@@ -2,6 +2,7 @@ import numpy as np
 
 from tetris_ai.game.actions import Action
 from tetris_ai.game.board import Board
+from tetris_ai.game.cell import Cell
 from tetris_ai.game.data_types import ListVector2, Vector2
 from tetris_ai.game.shape import ShapeGenerator
 
@@ -37,6 +38,7 @@ class TetrisEnv:
         self.current_shape = self.generate_random_shape()
         self.next_shapes = [self.generate_random_shape() for _ in range(num_next_shapes)]
         self.hold_shape = None
+        self.can_swap = True
 
         # Prepare the score
         self.score = 0
@@ -53,11 +55,11 @@ class TetrisEnv:
         self.update_display_matrix()
         return self.display_matrix  # return the state
 
-    def add_to_display_positions(self, positions: ListVector2, offset: Vector2):
-        self.display_matrix[positions[:, 0] + offset[0], positions[:, 1] + offset[1]] = 1
+    def add_to_display_positions(self, positions: ListVector2, offset: Vector2, cell: Cell = Cell.FULL):
+        self.display_matrix[positions[:, 0] + offset[0], positions[:, 1] + offset[1]] = cell.value
 
     def update_display_matrix(self):
-        self.display_matrix.fill(2)
+        self.display_matrix.fill(Cell.PAD.value)
 
         # Display the board
         board_state = self.board.state
@@ -67,10 +69,11 @@ class TetrisEnv:
 
         # Display the held shape
         if self.hold_shape is not None:
-            self.add_to_display_positions(self.hold_shape.shape_id.blocks_position, self.held_shape_offset)
+            cell = Cell.FULL if self.can_swap else Cell.DISABLED
+            self.add_to_display_positions(self.hold_shape.shape_id.blocks_position, self.held_shape_offset, cell)
 
         # Display the current shape
-        self.add_to_display_positions(self.current_shape.blocks_position, self.board_offset)
+        self.add_to_display_positions(self.current_shape.blocks_position, self.board_offset, Cell.CURRENT)
 
         # Display the next shapes
         for i, shape in enumerate(self.next_shapes):
@@ -102,6 +105,7 @@ class TetrisEnv:
         self.current_shape = self.next_shapes.pop(0)
         self.next_shapes.append(self.generate_random_shape())
         self.check_defeat()
+        self.can_swap = True
 
     def process_action(self, action: Action):
         if action == Action.LEFT:
@@ -128,6 +132,9 @@ class TetrisEnv:
             pass
 
         elif action == Action.SWAP:
+            if not self.can_swap:
+                return
+
             if self.hold_shape is None:
                 self.current_shape.reset()
                 self.hold_shape = self.current_shape
@@ -136,6 +143,8 @@ class TetrisEnv:
                 self.current_shape.reset()
                 self.hold_shape.reset()
                 self.current_shape, self.hold_shape = self.hold_shape, self.current_shape
+
+            self.can_swap = False
 
     def prepare_outputs(self):
         state = self.display_matrix
@@ -160,12 +169,16 @@ class TetrisEnv:
         display_string = ""
         for row in self.display_matrix:
             for col in row:
-                if col == 0:
+                if col == Cell.EMPTY.value:
                     display_string += "[ ]"
-                elif col == 1:
+                elif col == Cell.FULL.value:
                     display_string += "[█]"
-                else:
+                elif col == Cell.PAD.value:
                     display_string += "   "
+                elif col == Cell.CURRENT.value:
+                    display_string += "[▓]"
+                elif col == Cell.DISABLED.value:
+                    display_string += "[░]"
             display_string += "\n"
 
         # Print the display matrix
