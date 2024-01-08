@@ -3,15 +3,14 @@ from enum import Enum
 
 class Cell(Enum):
     """
-    Actions that can be taken by the agent.
+    Cell types that can be found in the board.
 
-    LEFT: Move the piece left.
-    RIGHT: Move the piece right.
-    DOWN: Move the piece down.
-    ROTATE: Rotate the piece.
-    DROP: Drop the piece.
-    NOOP: Do nothing.
-    SWAP: Swap the current piece with the held piece (if possible).
+    EMPTY: Empty cell.
+    PLACED: Cell that has been placed.
+    PAD: Padding cell.
+    CURRENT: Cell that is part of the current shape.
+    DISABLED: Cell that is part of the current shape but cannot be placed.
+    HELD: Cell that is part of the held shape.
     """
 
     EMPTY = 0
