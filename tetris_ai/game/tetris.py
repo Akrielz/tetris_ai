@@ -44,6 +44,15 @@ class TetrisEnv:
         self.score = 0
         self.done = False
 
+        self.cell_dict_visual = {
+            Cell.EMPTY.value: '[ ]',
+            Cell.PLACED.value: '[▒]',
+            Cell.PAD.value: '   ',
+            Cell.CURRENT.value: '[█]',
+            Cell.DISABLED.value: '[░]',
+            Cell.HELD.value: '[▓]',
+        }
+
     def reset(self):
         self.board.reset()
         self.current_shape = self.generate_random_shape()
@@ -55,7 +64,7 @@ class TetrisEnv:
         self.update_display_matrix()
         return self.display_matrix  # return the state
 
-    def add_to_display_positions(self, positions: ListVector2, offset: Vector2, cell: Cell = Cell.FULL):
+    def add_to_display_positions(self, positions: ListVector2, offset: Vector2, cell: Cell = Cell.PLACED):
         self.display_matrix[positions[:, 0] + offset[0], positions[:, 1] + offset[1]] = cell.value
 
     def update_display_matrix(self):
@@ -69,7 +78,7 @@ class TetrisEnv:
 
         # Display the held shape
         if self.hold_shape is not None:
-            cell = Cell.FULL if self.can_swap else Cell.DISABLED
+            cell = Cell.HELD if self.can_swap else Cell.DISABLED
             self.add_to_display_positions(self.hold_shape.shape_id.blocks_position, self.held_shape_offset, cell)
 
         # Display the current shape
@@ -77,7 +86,11 @@ class TetrisEnv:
 
         # Display the next shapes
         for i, shape in enumerate(self.next_shapes):
-            self.add_to_display_positions(shape.shape_id.blocks_position, self.next_shape_offset + np.array([i * (2 + 1), 0]))
+            self.add_to_display_positions(
+                shape.shape_id.blocks_position,
+                self.next_shape_offset + np.array([i * (2 + 1), 0]),
+                Cell.HELD
+            )
 
     def generate_random_shape(self):
         return self.shape_generator.generate_random_shape(self.start_position)
@@ -166,20 +179,7 @@ class TetrisEnv:
 
         # Update the display matrix
         self.update_display_matrix()
-        display_string = ""
-        for row in self.display_matrix:
-            for col in row:
-                if col == Cell.EMPTY.value:
-                    display_string += "[ ]"
-                elif col == Cell.FULL.value:
-                    display_string += "[█]"
-                elif col == Cell.PAD.value:
-                    display_string += "   "
-                elif col == Cell.CURRENT.value:
-                    display_string += "[▓]"
-                elif col == Cell.DISABLED.value:
-                    display_string += "[░]"
-            display_string += "\n"
+        display_string = "\n".join(["".join([self.cell_dict_visual[col] for col in row]) for row in self.display_matrix])
 
         # Print the display matrix
         print(display_string)

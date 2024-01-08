@@ -15,10 +15,11 @@ class Cell(Enum):
     """
 
     EMPTY = 0
-    FULL = 1
+    PLACED = 1
     PAD = 2
     CURRENT = 3
     DISABLED = 4
+    HELD = 5
 
     def __str__(self):
         return self.name.lower()
@@ -28,4 +29,4 @@ class Cell(Enum):
 
     @staticmethod
     def action_space():
-        return [Cell.EMPTY, Cell.FULL, Cell.PAD, Cell.CURRENT, Cell.DISABLED]
+        return [Cell.EMPTY, Cell.PLACED, Cell.PAD, Cell.CURRENT, Cell.DISABLED]
