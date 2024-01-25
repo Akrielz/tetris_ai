@@ -3,9 +3,8 @@ from typing import Optional
 
 import torch
 from torch import nn
-from torch.optim import Optimizer
 
-from tetris_ai.ai.buffer import Buffer, RolloutBuffer
+from tetris_ai.ai.buffer import Buffer, TemporaryBuffer
 
 
 class PPOAgent:
@@ -17,8 +16,6 @@ class PPOAgent:
             gamma: float = 0.99,  # Reduce factor
             buffer: Optional[Buffer] = None,
             device: Optional[torch.device] = None,
-            optimizer: Optional[Optimizer] = None,
-            loss_fn: Optional[nn.Module] = None,
             lr_actor: float = 0.001,
             lr_critic: float = 0.001,
     ):
@@ -26,19 +23,17 @@ class PPOAgent:
 
         # Init default params
         if buffer is None:
-            buffer = RolloutBuffer(buffer_size=10000)
+            buffer = TemporaryBuffer()
 
         if device is None:
-            device = torch.device('cpu')
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        if optimizer is None:
-            optimizer = torch.optim.Adam([
-                {'params': actor_critic.actor.parameters(), 'lr': lr_actor},
-                {'params': actor_critic.critic.parameters(), 'lr': lr_critic}
-            ])
+        optimizer = torch.optim.Adam([
+            {'params': actor_critic.actor.parameters(), 'lr': lr_actor},
+            {'params': actor_critic.critic.parameters(), 'lr': lr_critic}
+        ])
 
-        if loss_fn is None:
-            loss_fn = nn.MSELoss()
+        loss_fn = nn.MSELoss()
 
         # Save params
         self.policy = actor_critic

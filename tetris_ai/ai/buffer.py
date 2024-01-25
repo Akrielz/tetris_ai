@@ -15,9 +15,9 @@ class Buffer(ABC):
         raise NotImplementedError
 
 
-class RolloutBuffer(Buffer):
-    def __init__(self, buffer_size: int):
-        super().__init__(buffer_size)
+class TemporaryBuffer(Buffer):
+    def __init__(self):
+        super().__init__()
 
         self.actions = []
         self.states = []

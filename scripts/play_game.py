@@ -30,7 +30,8 @@ def main():
     while True:
         env.render_console()
         action = get_player_action()
-        state, reward, done, info = env.step(action)
+        output = env.step(action)
+        done = output['done']
 
         if done:
             env.reset()

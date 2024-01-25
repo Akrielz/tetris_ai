@@ -1,3 +1,5 @@
+from typing import Dict
+
 import numpy as np
 
 from tetris_ai.game.actions import Action
@@ -11,7 +13,7 @@ class TetrisEnv:
     def __init__(
             self,
             width: int = 10,
-            height: int = 22,
+            height: int = 23,
             num_next_shapes: int = 3,
     ):
         # Save clock speed
@@ -53,7 +55,15 @@ class TetrisEnv:
             Cell.HELD.value: '[▓]',
         }
 
-    def reset(self):
+    @property
+    def action_dim(self):
+        return len(Action)
+
+    @property
+    def state_dim(self):
+        return self.display_matrix.shape[0], self.display_matrix.shape[1], len(Cell)
+
+    def reset(self) -> Dict:
         self.board.reset()
         self.current_shape = self.generate_random_shape()
         self.next_shapes = [self.generate_random_shape() for _ in range(self.num_next_shapes)]
@@ -62,7 +72,7 @@ class TetrisEnv:
         self.done = False
 
         self.update_display_matrix()
-        return self.display_matrix  # return the state
+        return {"state": self.display_matrix}
 
     def add_to_display_positions(self, positions: ListVector2, offset: Vector2, cell: Cell = Cell.PLACED):
         self.display_matrix[positions[:, 0] + offset[0], positions[:, 1] + offset[1]] = cell.value
@@ -159,15 +169,21 @@ class TetrisEnv:
 
             self.can_swap = False
 
-    def prepare_outputs(self):
+    def prepare_outputs(self) -> Dict:
         state = self.display_matrix
         reward = self.score
         done = self.done
         info = {}
 
-        return state, reward, done, info
+        output = {
+            'state': state,
+            'reward': reward,
+            'done': done,
+            'info': info,
+        }
+        return output
 
-    def step(self, action: Action):
+    def step(self, action: Action) -> Dict:
         self.process_action(action)
         self.update_display_matrix()
 
@@ -185,6 +201,3 @@ class TetrisEnv:
         print(display_string)
 
         print("Score: ", self.score)
-
-        # sleep the ammount of time specified by the clock speed
-        # sleep(self.clock_speed / 1000)
