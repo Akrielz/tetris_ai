@@ -136,6 +136,7 @@ class TetrisEnv:
     def check_defeat(self):
         positions = self.current_shape.blocks_position
         self.done = True if not self.board.are_free(positions) else False
+        self.clear_score -= 10.0 if self.done else 0.0
 
     def add_score_modifiers(self):
         self.modifier_score = 0.0

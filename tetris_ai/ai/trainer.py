@@ -42,6 +42,9 @@ class TrainerPPO:
                 rewards = observations['rewards']
                 dones = observations['dones']
 
+                if torch.any(dones):
+                    torch.dones = torch.ones(self.env.batch_size, dtype=torch.bool, device=self.agent.device)
+
                 self.agent.buffer.add('rewards', rewards)
                 self.agent.buffer.add('dones', dones)
 
@@ -57,7 +60,11 @@ class TrainerPPO:
 
             self.episode_max_length += self.episode_length_increase
 
-            description = f'Episode {episode} reward: {current_episode_reward.item()}'
+            average_reward = current_episode_reward.mean().item()
+            max_reward = current_episode_reward.max().item()
+            min_reward = current_episode_reward.min().item()
+
+            description = f'Episode {episode} | Average Reward: {average_reward:.2f} | Max Reward: {max_reward:.2f} | Min Reward: {min_reward:.2f}'
             load_bar.set_description_str(description)
             episode += 1
 

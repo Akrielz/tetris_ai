@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Literal
 
 import torch
 from tensordict import TensorDict
@@ -12,10 +12,11 @@ from tetris_ai.game.tetris import TetrisEnv
 class TorchEnv(Env):
     def __init__(
             self,
-            env: TetrisEnv,
+            env,
             batch_size: int = 1,
             num_workers: int = 0,
-            device: Optional[torch.device] = None
+            device: Optional[torch.device] = None,
+            state_type: Literal['long, float'] = 'long',
     ):
         super().__init__()
 
@@ -26,6 +27,9 @@ class TorchEnv(Env):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.device = device
+        self.state_type = state_type
+        self.state_tensor = torch.LongTensor if self.state_type == 'long' else torch.FloatTensor
+
 
     @property
     def action_dim(self):
@@ -62,7 +66,7 @@ class TorchEnv(Env):
 
         # Unpack results
         results_dict = TensorDict({
-                'states': torch.stack([torch.LongTensor(result["state"]) for result in results]),
+                'states': torch.stack([self.state_tensor(result["state"]) for result in results]),
                 'rewards': torch.tensor([result["reward"] for result in results], dtype=torch.float),
                 'dones': torch.tensor([result["done"] for result in results], dtype=torch.bool),
             },
@@ -92,7 +96,7 @@ class TorchEnv(Env):
 
         # Unpack results
         results_dict = TensorDict({
-                'states': torch.stack([torch.LongTensor(result['state']) for result in results]),
+                'states': torch.stack([self.state_tensor(result['state']) for result in results]),
             },
             batch_size=self.batch_size
         )

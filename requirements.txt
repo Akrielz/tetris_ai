@@ -12,3 +12,4 @@ Pillow>=9.5.0
 opencv-python>=4.8.0.74
 huggingface-hub>=0.16.4
 tensorboard>=2.13.0
+vision-models-playground>=0.2.3

@@ -33,13 +33,20 @@ class ActorCritic(nn.Module):
         }
 
     def evaluate(self, state: torch.Tensor, action: torch.Tensor) -> Dict[str, torch.Tensor]:
+        # State and Actions have both batch dimension and length dimension
+        # Because of that, we will rearrange them behave as only a batch dimension both
+        batch_dim = state.shape[0]
+        state = rearrange(state, 'b l ... -> (b l) ...')
+
         action_probs = self.actor(state)
+        action_probs = rearrange(action_probs, '(b l) ... -> b l ...', b=batch_dim)
         dist = Categorical(action_probs)
 
         action_log_probs = dist.log_prob(action)
         dist_entropy = dist.entropy()
 
         state_value = self.critic(state)
+        state_value = rearrange(state_value, '(b l) ... -> b l ...', b=batch_dim)
 
         return {
             'dist_entropy': dist_entropy,

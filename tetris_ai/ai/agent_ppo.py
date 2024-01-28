@@ -18,6 +18,7 @@ class AgentPPO:
             device: Optional[torch.device] = None,
             lr_actor: float = 0.001,
             lr_critic: float = 0.001,
+            episode_batch_size: int = 32,
     ):
         super().__init__()
 
@@ -50,8 +51,12 @@ class AgentPPO:
         self.buffer = buffer
         self.device = device
 
+        self.episode_batch_size = episode_batch_size
+
         # Move to device
         self._move_to_device()
+
+        self.old_policy.eval()
 
     def _move_to_device(self):
         self.policy.to(self.device)
@@ -62,7 +67,7 @@ class AgentPPO:
         if states.device != self.device:
             states = states.to(self.device)
 
-        action_output = self.policy.act(states)
+        action_output = self.old_policy.act(states)
         actions = action_output['actions']
         log_probs = action_output['log_probs']
         state_values = action_output['state_values']
@@ -101,6 +106,8 @@ class AgentPPO:
         buffer_rewards = self.buffer.rewards
         buffer_dones = self.buffer.dones
 
+        episode_len = buffer_states.shape[0]
+
         # Compute discounted rewards
         discounted_rewards = self._compute_discontinued_rewards(buffer_rewards, buffer_dones)
 
@@ -109,28 +116,38 @@ class AgentPPO:
 
         # Optimize policy for K epochs
         for _ in range(self.num_epochs):
-            # Evaluate old actions and values
-            evaluation_output = self.policy.evaluate(buffer_states, buffer_actions)
-            dist_entropy = evaluation_output['dist_entropy']
-            log_probs = evaluation_output['log_probs']
-            state_values = evaluation_output['state_values']
+            for start in range(0, episode_len, self.episode_batch_size):
+                end = start + self.episode_batch_size
 
-            # Compute the ratios
-            ratios = torch.exp(log_probs - buffer_log_probs)
+                # Prepare the batches
+                buffer_states_batch = buffer_states[start:end]
+                buffer_actions_batch = buffer_actions[start:end]
+                buffer_log_probs_batch = buffer_log_probs[start:end]
+                discounted_rewards_batch = discounted_rewards[start:end]
+                advantages_batch = advantages[start:end]
 
-            # Compute surrogate loss
-            surrogate_1 = ratios * advantages
-            surrogate_2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
-            loss = (
-                - torch.min(surrogate_1, surrogate_2)
-                + 0.5 * self.loss_fn(state_values, discounted_rewards)
-                - 0.01 * dist_entropy
-            )
+                # Evaluate old actions and values
+                evaluation_output = self.policy.evaluate(buffer_states_batch, buffer_actions_batch)
+                dist_entropy = evaluation_output['dist_entropy']
+                log_probs = evaluation_output['log_probs']
+                state_values = evaluation_output['state_values']
 
-            # Optimize the policy
-            self.optimizer.zero_grad()
-            loss.mean().backward()
-            self.optimizer.step()
+                # Compute the ratios
+                ratios = torch.exp(log_probs - buffer_log_probs_batch)
+
+                # Compute surrogate loss
+                surrogate_1 = ratios * advantages_batch
+                surrogate_2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages_batch
+                loss = (
+                    - torch.min(surrogate_1, surrogate_2)
+                    + 0.5 * self.loss_fn(state_values, discounted_rewards_batch)
+                    - 0.01 * dist_entropy
+                )
+
+                # Optimize the policy
+                self.optimizer.zero_grad()
+                loss.mean().backward()
+                self.optimizer.step()
 
         # Copy new weights into old policy
         self.old_policy.load_state_dict(self.policy.state_dict())
