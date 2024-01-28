@@ -1,7 +1,7 @@
 import torch
 
 from tetris_ai.ai.models.actor_critic import ActorCritic
-from tetris_ai.ai.buffer import TemporaryBuffer
+from tetris_ai.ai.buffer import TemporaryBuffer, RolloutBuffer
 from tetris_ai.ai.env.torch_env import TorchEnv
 from tetris_ai.ai.env.transformed_env import TransformedEnv
 from tetris_ai.ai.agent_ppo import AgentPPO
@@ -32,8 +32,8 @@ def main():
     # Prepare the PPO Agent
     ppo_agent = AgentPPO(
         actor_critic,
-        num_epochs=10,
-        buffer=TemporaryBuffer(),
+        num_epochs=2,
+        buffer=RolloutBuffer(10000),
         device=device,
         lr_actor=3e-4,
         lr_critic=1e-3,
@@ -48,6 +48,7 @@ def main():
         update_frequency=400,
         episode_length_start=100,
         episode_length_increase=0.2,
+        model_name='resnet_vmp_rollout_buffer',
     )
 
     # Train

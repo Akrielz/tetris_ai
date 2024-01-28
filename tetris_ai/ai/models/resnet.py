@@ -10,7 +10,7 @@ def get_resnet_vmp(num_classes: int = 10):
     return ResNet(
         num_classes=num_classes,
         in_channels=3,
-        num_layers=[2, 2, 2],
+        num_layers=[4, 4, 4],
         num_channels=[16, 32, 64],
         block=ResidualBlock
     )
