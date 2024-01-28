@@ -19,7 +19,7 @@ game of Tetris, directly on "TETR.IO" (https://tetr.io/).
     - [ ] VisionTransformer
   - [ ] Add time dimension for the NN Agent
   - [X] Add more than a single batch for training
-  - [ ] Add a way to save the NN Agent
+  - [X] Add a way to save the NN Agent
   - [ ] Add a way to load the NN Agent
   - [ ] Add a way to visualize the trained NN Agent
   - [X] Upgrade the Replay Buffer to recall past events as well
