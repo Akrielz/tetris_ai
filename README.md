@@ -16,7 +16,7 @@ game of Tetris, directly on "TETR.IO" (https://tetr.io/).
   - [X] Combine the Tetris game engine and the NN Agent
   - [ ] Add better backbones for NN Agents
     - [X] ResNet
-    - [ ] VisionTransformer
+    - [X] ConvVisionTransformer
   - [ ] Add time dimension for the NN Agent
   - [X] Add more than a single batch for training
   - [X] Add a way to save the NN Agent
