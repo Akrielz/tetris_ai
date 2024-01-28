@@ -1,24 +1,27 @@
-from einops import rearrange
+import torch
 from tqdm import tqdm
 
-from tetris_ai.ai.ppo_agent import PPOAgent
-from tetris_ai.game.tetris import TetrisEnv
+from tetris_ai.ai.env.env import Env
+from tetris_ai.ai.agent_ppo import AgentPPO
 
 
 class TrainerPPO:
     def __init__(
             self,
-            env: TetrisEnv,
-            agent: PPOAgent,
+            env: Env,
+            agent: AgentPPO,
             update_frequency: int = 100,
-            max_episode_length: int = 100,
+            episode_length_start: float = 100,
+            episode_length_increase: float = 0,
     ):
         super().__init__()
 
         self.env = env
         self.agent = agent
         self.update_frequency = update_frequency
-        self.max_episode_length = max_episode_length
+        self.episode_length_start = episode_length_start
+        self.episode_length_increase = episode_length_increase
+        self.episode_max_length = episode_length_start
 
     def _train_epoch(self, num_steps: int):
         step = 0
@@ -27,27 +30,35 @@ class TrainerPPO:
         load_bar = tqdm(total=num_steps, desc='Training', unit='step')
 
         while step < num_steps:
-            state = self.env.reset()
-            current_episode_reward = 0
+            observations = self.env.reset()
+            states = observations['states']
 
-            for _ in range(self.max_episode_length):
-                action = self.agent.select_action(state)
-                next_state, reward, done, _ = self.env.step(action)
+            current_episode_reward = torch.zeros(self.env.batch_size, dtype=torch.float, device=self.agent.device)
+            for _ in range(int(self.episode_max_length)):
+                actions = self.agent.select_action(states)
+                observations = self.env.step(actions)
 
-                self.agent.buffer.add('rewards', reward)
-                self.agent.buffer.add('dones', done)
+                states = observations['states']
+                rewards = observations['rewards']
+                dones = observations['dones']
+
+                self.agent.buffer.add('rewards', rewards)
+                self.agent.buffer.add('dones', dones)
 
                 step += 1
                 load_bar.update(1)
-                current_episode_reward += reward
+                current_episode_reward += rewards
 
-                if step % self.update_frequency == 0:
+                if (step + 1) % self.update_frequency == 0:
                     self.agent.update()
 
-                if done:
+                if torch.any(dones):
                     break
 
-            print(f'Episode {episode} reward: {current_episode_reward}')
+            self.episode_max_length += self.episode_length_increase
+
+            description = f'Episode {episode} reward: {current_episode_reward.item()}'
+            load_bar.set_description_str(description)
             episode += 1
 
         load_bar.close()

@@ -1,4 +1,7 @@
+from typing import Dict
+
 import torch
+from einops import rearrange
 from torch import nn
 from torch.distributions import Categorical
 
@@ -14,22 +17,32 @@ class ActorCritic(nn.Module):
         self.actor = actor
         self.critic = critic
 
-    def act(self, state: torch.Tensor):
+    def act(self, state: torch.Tensor) -> Dict[str, torch.Tensor]:
         action_probs = self.actor(state)
         dist = Categorical(action_probs)
 
         action = dist.sample()
         action_log_probs = dist.log_prob(action)
-        stave_value = self.critic(state)
 
-        return action, action_log_probs, stave_value
+        state_value = self.critic(state)
 
-    def evaluate(self, state: torch.Tensor, action: torch.Tensor):
+        return {
+            'actions': action,
+            'log_probs': action_log_probs,
+            'state_values': state_value,
+        }
+
+    def evaluate(self, state: torch.Tensor, action: torch.Tensor) -> Dict[str, torch.Tensor]:
         action_probs = self.actor(state)
         dist = Categorical(action_probs)
 
         action_log_probs = dist.log_prob(action)
-        state_value = self.critic(state)
         dist_entropy = dist.entropy()
 
-        return action_log_probs, state_value, dist_entropy
+        state_value = self.critic(state)
+
+        return {
+            'dist_entropy': dist_entropy,
+            'log_probs': action_log_probs,
+            'state_values': state_value,
+        }

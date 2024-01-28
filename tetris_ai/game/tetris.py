@@ -15,9 +15,13 @@ class TetrisEnv:
             width: int = 10,
             height: int = 23,
             num_next_shapes: int = 3,
+            sparse_rewards: bool = False,
+            action_penalty: bool = False,
     ):
-        # Save clock speed
+        # Save info
         self.num_next_shapes = num_next_shapes
+        self.sparse_rewards = sparse_rewards
+        self.action_penalty = action_penalty
 
         # Create the displayable parts
         self.held_shape_display = np.zeros((2, 4))
@@ -43,8 +47,12 @@ class TetrisEnv:
         self.can_swap = True
 
         # Prepare the score
-        self.score = 0
+        self.clear_score = 0.0
+        self.modifier_score = 0.0
+        self.previous_score = 0.0
+        self.action_score = 0.0
         self.done = False
+        self.actions_since_last_placed = 0
 
         self.cell_dict_visual = {
             Cell.EMPTY.value: '[ ]',
@@ -54,6 +62,10 @@ class TetrisEnv:
             Cell.DISABLED.value: '[░]',
             Cell.HELD.value: '[▓]',
         }
+
+    @property
+    def score(self) -> float:
+        return self.clear_score + self.modifier_score + self.action_score
 
     @property
     def action_dim(self):
@@ -68,7 +80,10 @@ class TetrisEnv:
         self.current_shape = self.generate_random_shape()
         self.next_shapes = [self.generate_random_shape() for _ in range(self.num_next_shapes)]
         self.hold_shape = None
-        self.score = 0
+        self.modifier_score = 0.0
+        self.clear_score = 0.0
+        self.previous_score = 0.0
+        self.action_score = 0.0
         self.done = False
 
         self.update_display_matrix()
@@ -116,11 +131,24 @@ class TetrisEnv:
                 self.board[0, :] = 0
                 num_cleared_lines += 1
 
-        self.score += num_cleared_lines ** 2
+        self.clear_score += num_cleared_lines ** 2
 
     def check_defeat(self):
         positions = self.current_shape.blocks_position
         self.done = True if not self.board.are_free(positions) else False
+
+    def add_score_modifiers(self):
+        self.modifier_score = 0.0
+        # For each cell that is empty, but has a cell above it that is not empty, add a penalty
+        for y in range(1, self.board.height):
+            for x in range(self.board.width):
+                is_empty = self.board[y, x] == 0
+                has_above = np.any(self.board[:y, x] == 1)
+                if is_empty and has_above:
+                    self.modifier_score -= 0.02
+
+        # For each placed cell, add a bonus of 0.01
+        self.modifier_score += 0.01 * np.sum(self.board.state)
 
     def place_shape(self):
         self.current_shape.place()
@@ -128,33 +156,41 @@ class TetrisEnv:
         self.current_shape = self.next_shapes.pop(0)
         self.next_shapes.append(self.generate_random_shape())
         self.check_defeat()
+        self.add_score_modifiers()
         self.can_swap = True
+        self.actions_since_last_placed = 0
 
     def process_action(self, action: Action):
+
         if action == Action.LEFT:
             self.current_shape.move(np.array([0, -1]))
+            return
 
-        elif action == Action.RIGHT:
+        if action == Action.RIGHT:
             self.current_shape.move(np.array([0, 1]))
+            return
 
-        elif action == Action.DOWN:
+        if action == Action.DOWN:
             if self.current_shape.can_move_down():
                 self.current_shape.move(np.array([1, 0]))
             else:
                 self.place_shape()
+            return
 
-        elif action == Action.ROTATE:
+        if action == Action.ROTATE:
             self.current_shape.rotate(is_clockwise=True)
+            return
 
-        elif action == Action.DROP:
+        if action == Action.DROP:
             while self.current_shape.can_move_down():
                 self.current_shape.move(np.array([1, 0]))
             self.place_shape()
+            return
 
-        elif action == Action.NOOP:
-            pass
+        if action == Action.NOOP:
+            return
 
-        elif action == Action.SWAP:
+        if action == Action.SWAP:
             if not self.can_swap:
                 return
 
@@ -168,6 +204,8 @@ class TetrisEnv:
                 self.current_shape, self.hold_shape = self.hold_shape, self.current_shape
 
             self.can_swap = False
+            self.actions_since_last_placed = 0
+            return
 
     def prepare_outputs(self) -> Dict:
         state = self.display_matrix
@@ -183,11 +221,51 @@ class TetrisEnv:
         }
         return output
 
-    def step(self, action: Action) -> Dict:
+    def apply_sparse_rewards(self):
+        if not self.sparse_rewards:
+            return
+
+        self.previous_score = self.score
+        self.clear_score = 0.0
+        self.modifier_score = 0.0
+        self.action_score = 0.0
+
+    def apply_action_penalty(self, action: Action):
+        if not self.action_penalty:
+            return
+
+        self.action_score = 0.0
+
+        if action == Action.NOOP:
+            self.action_score -= 0.1
+
+        elif action == Action.SWAP:
+            if self.actions_since_last_placed > 0:
+                self.action_score -= 0.1
+
+        elif action == Action.DOWN:
+            pass
+
+        elif action == Action.LEFT:
+            pass
+
+        elif self.actions_since_last_placed > 2 * self.board.width:
+            self.action_score -= 0.01
+
+        self.actions_since_last_placed += 1
+
+    def step(self, action: Action | int) -> Dict:
+        if isinstance(action, int):
+            action = Action(action)
+
         self.process_action(action)
+        self.apply_action_penalty(action)
         self.update_display_matrix()
 
-        return self.prepare_outputs()
+        outputs = self.prepare_outputs()
+        self.apply_sparse_rewards()
+
+        return outputs
 
     def render_console(self):
         # Clear screen the previous frame
@@ -200,4 +278,4 @@ class TetrisEnv:
         # Print the display matrix
         print(display_string)
 
-        print("Score: ", self.score)
+        print("Score: ", self.previous_score)

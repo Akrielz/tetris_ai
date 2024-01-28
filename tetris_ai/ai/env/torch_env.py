@@ -69,6 +69,8 @@ class TorchEnv(Env):
             batch_size=self.batch_size
         )
 
+        results_dict = results_dict.to(self.device)
+
         return results_dict
 
     def _reset_multiple_workers(self) -> List[Dict]:
@@ -95,7 +97,7 @@ class TorchEnv(Env):
             batch_size=self.batch_size
         )
 
-        results_dict.to(self.device)
+        results_dict = results_dict.to(self.device)
 
         return results_dict
 

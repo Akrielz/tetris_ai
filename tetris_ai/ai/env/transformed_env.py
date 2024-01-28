@@ -2,7 +2,7 @@ from typing import Optional
 
 from tetris_ai.ai.env.env import Env
 from tetris_ai.ai.env.torch_env import TorchEnv
-from tetris_ai.ai.env.transform import Transform, Identity
+from tetris_ai.ai.env.transform import Transform
 
 
 class TransformedEnv(Env):
@@ -16,22 +16,25 @@ class TransformedEnv(Env):
         self.env = env
         self.transform = transform
 
-        if self.transform is None:
-            self.transform = Identity()
-
     def reset(self):
         state = self.env.reset()
-        state = self.transform(state)
+        if self.transform is not None:
+            state = self.transform(state)
+
         return state
 
     def step(self, action):
         output = self.env.step(action)
-        output = self.transform(output)
+        if self.transform is not None:
+            output = self.transform(output)
+
         return output
 
     def rand_step(self):
         output = self.env.rand_step()
-        output = self.transform(output)
+        if self.transform is not None:
+            output = self.transform(output)
+
         return output
 
     @property
@@ -41,3 +44,7 @@ class TransformedEnv(Env):
     @property
     def state_dim(self):
         return self.env.state_dim
+
+    @property
+    def batch_size(self):
+        return self.env.batch_size
