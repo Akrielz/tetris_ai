@@ -24,7 +24,7 @@ def get_random_action():
 
 
 def main():
-    env = TetrisEnv(height=10, sparse_rewards=False)
+    env = TetrisEnv(height=10, sparse_rewards=True)
     env.reset()
 
     while True:

@@ -138,26 +138,43 @@ class TetrisEnv:
         self.done = True if not self.board.are_free(positions) else False
         self.clear_score -= 10.0 if self.done else 0.0
 
-    def add_score_modifiers(self):
+    def add_score_place_modifiers(self):
         self.modifier_score = 0.0
-        # For each cell that is empty, but has a cell above it that is not empty, add a penalty
-        for y in range(1, self.board.height):
-            for x in range(self.board.width):
-                is_empty = self.board[y, x] == 0
-                has_above = np.any(self.board[:y, x] == 1)
-                if is_empty and has_above:
-                    self.modifier_score -= 0.02
 
-        # For each placed cell, add a bonus of 0.01
-        self.modifier_score += 0.01 * np.sum(self.board.state)
+        # Add a small bonus for each block placed correctly
+        for block_position in self.current_shape.blocks_position:
+            self.modifier_score += 0.01
+            y, x = block_position
+            tallness = self.board.height - y
+            if tallness >= self.board.height // 2:
+                tall_penalty = tallness - self.board.height // 2
+                self.modifier_score -= tall_penalty * 0.01
+
+        # Add a penalty for each block placed incorrectly
+        xs = set(self.current_shape.blocks_position[:, 1])
+        ys_max_per_xs = {}
+        for x in xs:
+            mask = self.current_shape.blocks_position[:, 1] == x
+            ys_max_per_xs[x] = np.min(self.current_shape.blocks_position[mask][:, 0])
+
+        # For each emtpy cell that the piece is directly above of, until it reaches a non-empty cell
+        for x in xs:
+            y = ys_max_per_xs[x]
+            for i in range(y+1, self.board.height):
+                if self.board[i, x] != Cell.EMPTY.value:
+                    break
+                self.modifier_score -= 0.1
+
+        # Add penalty for bumpy terrain
+        # TODO: Implement this
 
     def place_shape(self):
         self.current_shape.place()
+        self.add_score_place_modifiers()
         self.check_clear_lines()
         self.current_shape = self.next_shapes.pop(0)
         self.next_shapes.append(self.generate_random_shape())
         self.check_defeat()
-        self.add_score_modifiers()
         self.can_swap = True
         self.actions_since_last_placed = 0
 

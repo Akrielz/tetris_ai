@@ -99,7 +99,7 @@ class TrainerPPO:
             states = observations['states']
 
             current_episode_reward = torch.zeros(self.env.batch_size, dtype=torch.float, device=self.agent.device)
-            for _ in range(int(self.episode_max_length)):
+            for j in range(int(self.episode_max_length)):
                 actions = self.agent.select_action(states)
                 observations = self.env.step(actions)
 
@@ -107,8 +107,8 @@ class TrainerPPO:
                 rewards = observations['rewards']
                 dones = observations['dones']
 
-                if torch.any(dones):
-                    torch.dones = torch.ones(self.env.batch_size, dtype=torch.bool, device=self.agent.device)
+                if torch.any(dones) or j == int(self.episode_max_length) - 1:
+                    dones = torch.ones(self.env.batch_size, dtype=torch.bool, device=self.agent.device)
 
                 self.agent.buffer.add('rewards', rewards)
                 self.agent.buffer.add('dones', dones)
@@ -128,6 +128,7 @@ class TrainerPPO:
 
             average_reward = self.display_reward_tracker.compute().item()
             self.writer.add_scalar('Average Reward', average_reward, episode)
+            self.writer.add_scalar('Exact Reward', current_episode_reward.mean() , episode)
 
             if (episode + 1) % self.save_every_n_episodes == 0:
                 self._save_state()
@@ -143,7 +144,7 @@ class TrainerPPO:
         current_state = self.agent.policy.state_dict()
 
         self.writer.add_scalar(
-            f'best_average_reward_attempt',
+            f'Average rewards on last {self.save_every_n_episodes} episodes',
             current_average_reward, self.num_save_attempts
         )
 
@@ -156,7 +157,7 @@ class TrainerPPO:
             torch.save(current_state, f'{self.save_dir}/best.pt')
 
             self.writer.add_scalar(
-                'best_average_reward_success',
+                'Best average reward',
                 current_average_reward, self.num_save_successes
             )
             self.num_save_successes += 1
