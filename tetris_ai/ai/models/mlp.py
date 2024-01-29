@@ -11,7 +11,7 @@ class MultiLayerPerceptron(torch.nn.Module):
     def __init__(
             self,
             inner_dims: List[int],
-            dropout: float = 0.1,
+            dropout: float = 0.0,
             activation: str='relu',
     ):
         super().__init__()
@@ -28,6 +28,7 @@ class MultiLayerPerceptron(torch.nn.Module):
 
         self.layers = nn.ModuleList()
         for i in range(len(inner_dims) - 2):
+            self.layers.append(nn.LayerNorm(inner_dims[i]))
             self.layers.append(nn.Linear(inner_dims[i], inner_dims[i + 1]))
             self.layers.append(Dropout(dropout))
             self.layers.append(activation_fn)
@@ -42,10 +43,10 @@ class MultiLayerPerceptron(torch.nn.Module):
 
 
 def get_mlp_critic(state_dim: List[int]):
-    mlp = MultiLayerPerceptron(inner_dims=[state_dim[0] * state_dim[1] * 3, 16, 32, 32, 32, 32, 32, 1])
+    mlp = MultiLayerPerceptron(inner_dims=[state_dim[0] * state_dim[1] * 3, 128, 128, 128, 128, 1])
     return critic_wrapper(mlp, state_dim, model_type='mlp')
 
 
 def get_mlp_actor(state_dim: List[int], action_dim: int):
-    mlp = MultiLayerPerceptron(inner_dims=[state_dim[0] * state_dim[1] * 3, 16, 32, 32, 32, 32, 32, action_dim])
+    mlp = MultiLayerPerceptron(inner_dims=[state_dim[0] * state_dim[1] * 3, 128, 128, 128, 128, action_dim])
     return actor_wrapper(mlp, state_dim, model_type='mlp')

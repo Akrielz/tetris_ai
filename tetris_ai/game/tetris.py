@@ -1,8 +1,8 @@
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 
-from tetris_ai.game.actions import Action
+from tetris_ai.game.actions import Action, MultiAction
 from tetris_ai.game.board import Board
 from tetris_ai.game.cell import Cell
 from tetris_ai.game.data_types import ListVector2, Vector2
@@ -17,6 +17,8 @@ class TetrisEnv:
             num_next_shapes: int = 3,
             sparse_rewards: bool = False,
             action_penalty: bool = False,
+            force_down_every_n_moves: int = 10,
+            force_drop_instead_of_down: bool = False,
     ):
         # Save info
         self.num_next_shapes = num_next_shapes
@@ -63,6 +65,12 @@ class TetrisEnv:
             Cell.HELD.value: '[▓]',
         }
 
+        # Prepare force down variables
+        self.force_down_every_n_steps = force_down_every_n_moves
+        self.aplpy_force_down = force_down_every_n_moves > 0
+        self.force_drop_instead_of_down = force_drop_instead_of_down
+        self.moves_since_last_force_down = 0
+
     @property
     def score(self) -> float:
         return self.clear_score + self.modifier_score + self.action_score
@@ -85,6 +93,9 @@ class TetrisEnv:
         self.previous_score = 0.0
         self.action_score = 0.0
         self.done = False
+
+        self.moves_since_last_force_down = 0
+        self.actions_since_last_placed = 0
 
         self.update_display_matrix()
         return {"state": self.display_matrix}
@@ -142,8 +153,11 @@ class TetrisEnv:
         self.modifier_score = 0.0
 
         # Add a small bonus for each block placed correctly
-        for block_position in self.current_shape.blocks_position:
+        for _ in self.current_shape.blocks_position:
             self.modifier_score += 0.01
+
+        # Add a penalty for each block placed too high
+        for block_position in self.current_shape.blocks_position:
             y, x = block_position
             tallness = self.board.height - y
             if tallness >= self.board.height // 2:
@@ -153,11 +167,12 @@ class TetrisEnv:
         # Add a penalty for each block placed incorrectly
         xs = set(self.current_shape.blocks_position[:, 1])
         ys_max_per_xs = {}
+        ys_min_per_xs = {}
         for x in xs:
             mask = self.current_shape.blocks_position[:, 1] == x
             ys_max_per_xs[x] = np.min(self.current_shape.blocks_position[mask][:, 0])
+            ys_min_per_xs[x] = np.max(self.current_shape.blocks_position[mask][:, 0])
 
-        # For each emtpy cell that the piece is directly above of, until it reaches a non-empty cell
         for x in xs:
             y = ys_max_per_xs[x]
             for i in range(y+1, self.board.height):
@@ -177,8 +192,10 @@ class TetrisEnv:
         self.check_defeat()
         self.can_swap = True
         self.actions_since_last_placed = 0
+        self.moves_since_last_force_down = 0
 
     def process_action(self, action: Action):
+        self.moves_since_last_force_down += 1
 
         if action == Action.LEFT:
             self.current_shape.move(np.array([0, -1]))
@@ -193,6 +210,7 @@ class TetrisEnv:
                 self.current_shape.move(np.array([1, 0]))
             else:
                 self.place_shape()
+            self.moves_since_last_force_down = 0
             return
 
         if action == Action.ROTATE:
@@ -203,6 +221,7 @@ class TetrisEnv:
             while self.current_shape.can_move_down():
                 self.current_shape.move(np.array([1, 0]))
             self.place_shape()
+            self.moves_since_last_force_down = 0
             return
 
         if action == Action.NOOP:
@@ -223,6 +242,7 @@ class TetrisEnv:
 
             self.can_swap = False
             self.actions_since_last_placed = 0
+            self.moves_since_last_force_down = 0
             return
 
     def prepare_outputs(self) -> Dict:
@@ -272,11 +292,22 @@ class TetrisEnv:
 
         self.actions_since_last_placed += 1
 
+    def apply_force_move_down(self):
+        if not self.aplpy_force_down:
+            return
+
+        if self.moves_since_last_force_down >= self.force_down_every_n_steps:
+            if self.force_drop_instead_of_down:
+                self.process_action(Action.DROP)
+            else:
+                self.process_action(Action.DOWN)
+
     def step(self, action: Action | int) -> Dict:
         if isinstance(action, int):
             action = Action(action)
 
         self.process_action(action)
+        self.apply_force_move_down()
         self.apply_action_penalty(action)
         self.update_display_matrix()
 
@@ -297,3 +328,41 @@ class TetrisEnv:
         print(display_string)
 
         print("Score: ", self.previous_score)
+
+
+class MultiActionTetrisEnv(TetrisEnv):
+    def __init__(
+            self,
+            width: int = 10,
+            height: int = 23,
+            num_next_shapes: int = 3,
+            sparse_rewards: bool = False,
+            action_penalty: bool = False,
+            force_down_every_n_moves: int = 0,
+            force_drop_instead_of_down: bool = False,
+    ):
+        super().__init__(
+            width,
+            height,
+            num_next_shapes,
+            sparse_rewards,
+            action_penalty,
+            force_down_every_n_moves,
+            force_drop_instead_of_down,
+        )
+
+        self.multi_action = MultiAction(width)
+
+    @property
+    def action_dim(self):
+        return len(self.multi_action.action_space())
+
+    def step(self, action: int) -> Dict:
+        actions = self.multi_action(action)
+        return self.multi_step(actions)
+
+    def multi_step(self, actions: List[Action | int]) -> Dict:
+        for action in actions:
+            observations = super().step(action)
+
+        return observations

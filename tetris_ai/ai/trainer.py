@@ -58,6 +58,8 @@ class TrainerPPO:
         self.display_reward_tracker = RewardTracker()
         self.monitor_reward_tracker = RewardTracker()
         self.best_monitored_reward = None
+        self.best_episode_reward = None
+        self.worst_episode_reward = None
 
         self.trackers = [
             self.display_reward_tracker,
@@ -126,15 +128,26 @@ class TrainerPPO:
             for tracker in self.trackers:
                 tracker.update(current_episode_reward)
 
+            if self.best_episode_reward is None or current_episode_reward.mean() > self.best_episode_reward:
+                self.best_episode_reward = current_episode_reward.mean()
+
+            if self.worst_episode_reward is None or current_episode_reward.mean() < self.worst_episode_reward:
+                self.worst_episode_reward = current_episode_reward.mean()
+
             average_reward = self.display_reward_tracker.compute().item()
             self.writer.add_scalar('Average Reward', average_reward, episode)
-            self.writer.add_scalar('Exact Reward', current_episode_reward.mean() , episode)
+            self.writer.add_scalar('Exact Reward', current_episode_reward.mean(), episode)
+            self.writer.add_scalar('Max Reward', self.best_episode_reward, episode)
+            self.writer.add_scalar('Min Reward', self.worst_episode_reward, episode)
+
+            description = f'Episode {episode} | Average Reward: {average_reward:.2f}'
+            description += f' | Best Reward: {self.best_episode_reward:.2f}'
+            description += f' | Worst Reward: {self.worst_episode_reward:.2f}'
+            load_bar.set_description_str(description)
 
             if (episode + 1) % self.save_every_n_episodes == 0:
                 self._save_state()
 
-            description = f'Episode {episode} | Average Reward: {average_reward:.2f}'
-            load_bar.set_description_str(description)
             episode += 1
 
         load_bar.close()
