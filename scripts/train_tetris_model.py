@@ -9,7 +9,6 @@ from tetris_ai.ai.models.conv_vision_trasnformer import get_conv_vision_transfor
 from tetris_ai.ai.models.mlp import get_mlp_critic, get_mlp_actor
 from tetris_ai.ai.models.resnet import get_resnet_vmp_critic, get_resnet_vmp_actor
 from tetris_ai.ai.trainer import TrainerPPO
-from tetris_ai.game.actions import LimitedAction
 from tetris_ai.game.tetris import TetrisEnv, MultiActionTetrisEnv
 
 
@@ -37,12 +36,12 @@ def main():
     ppo_agent = AgentPPO(
         actor_critic,
         num_epochs=2,
-        buffer=RolloutBuffer(10000),
+        buffer=RolloutBuffer(100000),
         device=device,
         lr_actor=3e-4,
         lr_critic=1e-3,
         gamma=0.99,
-        episode_batch_size=200,
+        episode_batch_size=5000,
     )
 
     # Prepare Trainer
