@@ -147,7 +147,7 @@ class TetrisEnv:
     def check_defeat(self):
         positions = self.current_shape.blocks_position
         self.done = True if not self.board.are_free(positions) else False
-        self.clear_score -= 10.0 if self.done else 0.0
+        self.clear_score -= 2.0 if self.done else 0.0
 
     def add_score_place_modifiers(self):
         self.modifier_score = 0.0
@@ -170,8 +170,8 @@ class TetrisEnv:
         ys_min_per_xs = {}
         for x in xs:
             mask = self.current_shape.blocks_position[:, 1] == x
-            ys_max_per_xs[x] = np.min(self.current_shape.blocks_position[mask][:, 0])
-            ys_min_per_xs[x] = np.max(self.current_shape.blocks_position[mask][:, 0])
+            ys_max_per_xs[x] = np.max(self.current_shape.blocks_position[mask][:, 0])
+            ys_min_per_xs[x] = np.min(self.current_shape.blocks_position[mask][:, 0])
 
         for x in xs:
             y = ys_max_per_xs[x]
