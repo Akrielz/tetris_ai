@@ -25,7 +25,7 @@ def main():
     env = TransformedEnv(env)
 
     state_dim = env.state_dim
-    action_dim = len(LimitedAction.action_space())
+    action_dim = env.action_dim
 
     # Prepare the Actor & Critic
     actor = get_resnet_vmp_actor(state_dim, action_dim)

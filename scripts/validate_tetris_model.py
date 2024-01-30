@@ -8,7 +8,7 @@ from tetris_ai.ai.env.transformed_env import TransformedEnv
 from tetris_ai.ai.models.actor_critic import ActorCritic
 from tetris_ai.ai.models.resnet import get_resnet_vmp_actor, get_resnet_vmp_critic
 from tetris_ai.game.actions import LimitedAction
-from tetris_ai.game.tetris import TetrisEnv
+from tetris_ai.game.tetris import TetrisEnv, MultiActionTetrisEnv
 
 
 def load_model(
@@ -39,7 +39,9 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Prepare the environment
-    env = TetrisEnv(height=23, sparse_rewards=False, action_penalty=False, force_down_every_n_moves=4)
+    env = MultiActionTetrisEnv(
+        height=23, sparse_rewards=True, action_penalty=False,
+    )
     env = TorchEnv(env, batch_size=1, num_workers=0, device=device)
     env = TransformedEnv(env)
 
@@ -47,7 +49,7 @@ def main():
     action_dim = len(LimitedAction.action_space())
 
     # Load the model
-    model_path = 'models/train/resnet_vmp_rollout_buffer/2024-01-29_14-57-45/best.pt'
+    model_path = 'models/train/resnet_vmp_rollout_buffer/2024-01-29_20-46-19/best.pt'
     actor_critic = load_model(model_path, device, state_dim, action_dim)
 
     # Test the model

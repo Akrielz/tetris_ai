@@ -162,7 +162,7 @@ class TetrisEnv:
             tallness = self.board.height - y
             if tallness >= self.board.height // 2:
                 tall_penalty = tallness - self.board.height // 2
-                self.modifier_score -= tall_penalty * 0.01
+                self.modifier_score -= tall_penalty * 0.003
 
         # Add a penalty for each block placed incorrectly
         xs = set(self.current_shape.blocks_position[:, 1])
