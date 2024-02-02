@@ -40,16 +40,16 @@ def main():
 
     # Prepare the environment
     env = MultiActionTetrisEnv(
-        height=23, sparse_rewards=True, action_penalty=False,
+        height=23, sparse_rewards=True, action_penalty=False, force_down_every_n_moves=0,
     )
     env = TorchEnv(env, batch_size=1, num_workers=0, device=device)
     env = TransformedEnv(env)
 
     state_dim = env.state_dim
-    action_dim = len(LimitedAction.action_space())
+    action_dim = env.action_dim
 
     # Load the model
-    model_path = 'models/train/resnet_vmp_rollout_buffer/2024-01-29_20-46-19/best.pt'
+    model_path = 'models/train/resnet_vmp_rollout_buffer/2024-01-30_07-09-27/best.pt'
     actor_critic = load_model(model_path, device, state_dim, action_dim)
 
     # Test the model
