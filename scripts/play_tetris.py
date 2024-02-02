@@ -5,7 +5,7 @@ from tetris_ai.game.tetris import TetrisEnv, MultiActionTetrisEnv
 
 
 def get_player_action():
-    input_actions = input("Action: ")
+    input_action = input("Action: ")[0]
     input_map = {
         "a": Action.LEFT,
         "d": Action.RIGHT,
@@ -16,7 +16,7 @@ def get_player_action():
         'q': Action.SWAP,
     }
 
-    return [input_map.get(action, Action.NOOP) for action in input_actions]
+    return input_map.get(input_action, Action.NOOP)
 
 
 def get_player_multi_action(multi_action: MultiAction):
@@ -30,17 +30,21 @@ def get_random_action():
 
 
 def play_tetris():
-    env = TetrisEnv(height=10, sparse_rewards=True, force_down_every_n_moves=4, force_drop_instead_of_down=False)
+    env = TetrisEnv(height=23, sparse_rewards=True, force_down_every_n_moves=4, force_drop_instead_of_down=False)
     env.reset()
 
+    score = 0.0
     while True:
         env.render_console()
-        actions = get_player_action()
-        output = env.multi_step(actions)
+        print(f"Cumulative Score: {score}")
+        action = get_player_action()
+        output = env.step(action)
         done = output['done']
+        score += output['reward']
 
         if done:
             env.reset()
+            score = 0
 
 
 def play_tetris_multi_action():
@@ -59,4 +63,4 @@ def play_tetris_multi_action():
 
 
 if __name__ == "__main__":
-    play_tetris_multi_action()
+    play_tetris()

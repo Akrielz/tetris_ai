@@ -7,7 +7,6 @@ from tetris_ai.ai.env.torch_env import TorchEnv
 from tetris_ai.ai.env.transformed_env import TransformedEnv
 from tetris_ai.ai.models.actor_critic import ActorCritic
 from tetris_ai.ai.models.resnet import get_resnet_vmp_actor, get_resnet_vmp_critic
-from tetris_ai.game.actions import LimitedAction
 from tetris_ai.game.tetris import TetrisEnv, MultiActionTetrisEnv
 
 
@@ -49,23 +48,29 @@ def main():
     action_dim = env.action_dim
 
     # Load the model
-    model_path = 'models/train/resnet_vmp_rollout_buffer/2024-01-30_07-09-27/best.pt'
+    model_path = 'models/saved/resnet_vmp_best.pt'
     actor_critic = load_model(model_path, device, state_dim, action_dim)
 
     # Test the model
     state = env.reset()['states']
 
+    cumulative_reward = 0.0
+
     while True:
         env.env.envs[0].render_console()
+        print(f"Cumulative Reward: {cumulative_reward}")
 
-        action = actor_critic.act(state)['actions']
+        action = actor_critic.act_deterministic(state)['actions']
 
         output = env.step(action)
         state = output['states']
         done = output['dones']
+        reward = output['rewards'].mean().item()
+        cumulative_reward += reward
 
         if torch.any(done):
             env.reset()
+            cumulative_reward = 0.0
 
         sleep(0.4)
 

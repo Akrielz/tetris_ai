@@ -32,6 +32,16 @@ class ActorCritic(nn.Module):
             'state_values': state_value,
         }
 
+    def act_deterministic(self, state: torch.Tensor) -> Dict[str, torch.Tensor]:
+        action_probs = self.actor(state)
+        action = torch.argmax(action_probs, dim=-1)
+        state_value = self.critic(state)
+
+        return {
+            'actions': action,
+            'state_values': state_value,
+        }
+
     def evaluate(self, state: torch.Tensor, action: torch.Tensor) -> Dict[str, torch.Tensor]:
         # State and Actions have both batch dimension and length dimension
         # Because of that, we will rearrange them behave as only a batch dimension both
