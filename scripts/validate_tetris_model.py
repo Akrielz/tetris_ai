@@ -5,9 +5,9 @@ import torch
 
 from tetris_ai.ai.env.torch_env import TorchEnv
 from tetris_ai.ai.env.transformed_env import TransformedEnv
-from tetris_ai.ai.models.actor_critic import ActorCritic
-from tetris_ai.ai.models.resnet import get_resnet_vmp_actor, get_resnet_vmp_critic
-from tetris_ai.game.tetris import TetrisEnv, MultiActionTetrisEnv
+from tetris_ai.ai.rl.models.actor_critic import ActorCritic
+from tetris_ai.ai.rl.models.resnet import get_resnet_vmp_actor, get_resnet_vmp_critic
+from tetris_ai.game.tetris import MultiActionTetrisEnv
 
 
 def load_model(

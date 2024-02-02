@@ -3,7 +3,7 @@ from typing import List
 import torch
 from vision_models_playground.models.classifiers import ConvVisionTransformer
 
-from tetris_ai.ai.models.wrappers import actor_wrapper, critic_wrapper
+from tetris_ai.ai.rl.models.wrappers import critic_wrapper, actor_wrapper
 
 
 def get_conv_vision_transformer(num_classes: int = 10):

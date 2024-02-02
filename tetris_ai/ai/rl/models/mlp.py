@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.nn import Dropout
 
-from tetris_ai.ai.models.wrappers import actor_wrapper, critic_wrapper
+from tetris_ai.ai.rl.models.wrappers import critic_wrapper, actor_wrapper
 
 
 class MultiLayerPerceptron(torch.nn.Module):

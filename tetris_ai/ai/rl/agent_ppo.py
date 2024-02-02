@@ -4,7 +4,7 @@ from typing import Optional
 import torch
 from torch import nn
 
-from tetris_ai.ai.buffer import Buffer, TemporaryBuffer
+from tetris_ai.ai.rl.buffer import Buffer, TemporaryBuffer
 
 
 class AgentPPO:

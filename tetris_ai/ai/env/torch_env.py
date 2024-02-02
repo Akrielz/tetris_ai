@@ -16,7 +16,7 @@ class TorchEnv(Env):
             batch_size: int = 1,
             num_workers: int = 0,
             device: Optional[torch.device] = None,
-            state_type: Literal['long, float'] = 'long',
+            state_type: Literal['long', 'float'] = 'long',
     ):
         super().__init__()
 
@@ -29,7 +29,6 @@ class TorchEnv(Env):
         self.device = device
         self.state_type = state_type
         self.state_tensor = torch.LongTensor if self.state_type == 'long' else torch.FloatTensor
-
 
     @property
     def action_dim(self):

@@ -3,13 +3,13 @@ import torch
 from einops.layers.torch import Rearrange
 from torch.nn import Sequential, Softmax
 
-from tetris_ai.ai.agent_ppo import AgentPPO
-from tetris_ai.ai.buffer import TemporaryBuffer
+from tetris_ai.ai.rl.agent_ppo import AgentPPO
+from tetris_ai.ai.rl.buffer import TemporaryBuffer
 from tetris_ai.ai.env.torch_env import TorchEnv
 from tetris_ai.ai.env.transformed_env import TransformedEnv
-from tetris_ai.ai.models.actor_critic import ActorCritic
-from tetris_ai.ai.models.mlp import MultiLayerPerceptron
-from tetris_ai.ai.trainer import TrainerPPO
+from tetris_ai.ai.rl.models.actor_critic import ActorCritic
+from tetris_ai.ai.rl.models.mlp import MultiLayerPerceptron
+from tetris_ai.ai.rl.trainer import TrainerPPO
 
 
 class CartPoleEnv:

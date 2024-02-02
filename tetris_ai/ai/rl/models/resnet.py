@@ -2,9 +2,9 @@ from typing import List
 
 from torch.nn import Linear
 from vision_models_playground.components.convolutions import ResidualBlock
-from vision_models_playground.models.classifiers import build_resnet_18, ResNet
+from vision_models_playground.models.classifiers import ResNet
 
-from tetris_ai.ai.models.wrappers import critic_wrapper, actor_wrapper
+from tetris_ai.ai.rl.models.wrappers import critic_wrapper, actor_wrapper
 
 
 def get_resnet_vmp(num_classes: int = 10):

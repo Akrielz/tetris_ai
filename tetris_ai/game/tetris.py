@@ -53,6 +53,7 @@ class TetrisEnv:
         self.modifier_score = 0.0
         self.previous_score = 0.0
         self.action_score = 0.0
+        self.sparse_score = 0.0
         self.done = False
         self.actions_since_last_placed = 0
 
@@ -71,9 +72,16 @@ class TetrisEnv:
         self.force_drop_instead_of_down = force_drop_instead_of_down
         self.moves_since_last_force_down = 0
 
+        # Prepare bumpiness score
+        self.bumpiness_penalty = 0.0
+
+    @property
+    def continuous_score(self) -> float:
+        return self.clear_score + self.modifier_score + self.action_score + self.bumpiness_penalty
+
     @property
     def score(self) -> float:
-        return self.clear_score + self.modifier_score + self.action_score
+        return self.continuous_score if not self.sparse_rewards else self.sparse_score
 
     @property
     def action_dim(self):
@@ -133,14 +141,19 @@ class TetrisEnv:
 
     def check_clear_lines(self):
         ys = self.current_shape.blocks_position[:, 0]
+        ys = np.unique(ys)
 
         num_cleared_lines = 0
-        for y in ys:
-            if np.all(self.board[y, :] == 1):
-                self.board[y, :] = 0
+        i = 0
+        while i < len(ys):
+            y = ys[i]
+            if np.all(self.board[y, :] == Cell.PLACED.value):
+                self.board[y, :] = Cell.EMPTY.value
                 self.board[1:y+1, :] = self.board[:y, :]
-                self.board[0, :] = 0
+                self.board[0, :] = Cell.EMPTY.value
                 num_cleared_lines += 1
+                continue
+            i += 1
 
         self.clear_score += num_cleared_lines ** 2
 
@@ -160,9 +173,9 @@ class TetrisEnv:
         for block_position in self.current_shape.blocks_position:
             y, x = block_position
             tallness = self.board.height - y
-            if tallness >= self.board.height // 2:
-                tall_penalty = tallness - self.board.height // 2
-                self.modifier_score -= tall_penalty * 0.003
+            if tallness >= 4:
+                tall_penalty = tallness - 4
+                self.modifier_score -= tall_penalty * 0.006
 
         # Add a penalty for each block placed incorrectly
         xs = set(self.current_shape.blocks_position[:, 1])
@@ -178,13 +191,23 @@ class TetrisEnv:
             for i in range(y+1, self.board.height):
                 if self.board[i, x] != Cell.EMPTY.value:
                     break
-                self.modifier_score -= 0.1
+                self.modifier_score -= 0.3
 
-        # Add penalty for bumpy terrain
-        # TODO: Implement this
+    def compute_bumpiness(self):
+        max_heights_per_column = np.zeros(self.board.width)
+        for x in range(self.board.width):
+            for y in range(self.board.height):
+                if self.board[y, x] != Cell.EMPTY.value:
+                    max_heights_per_column[x] = self.board.height - y
+                    break
+
+        bumpiness_per_column = np.abs(np.diff(max_heights_per_column))
+        mask = bumpiness_per_column > 1
+        self.bumpiness_penalty = -np.sum(bumpiness_per_column[mask]) * 0.05
 
     def place_shape(self):
         self.current_shape.place()
+        self.compute_bumpiness()
         self.add_score_place_modifiers()
         self.check_clear_lines()
         self.current_shape = self.next_shapes.pop(0)
@@ -259,15 +282,6 @@ class TetrisEnv:
         }
         return output
 
-    def apply_sparse_rewards(self):
-        if not self.sparse_rewards:
-            return
-
-        self.previous_score = self.score
-        self.clear_score = 0.0
-        self.modifier_score = 0.0
-        self.action_score = 0.0
-
     def apply_action_penalty(self, action: Action):
         if not self.action_penalty:
             return
@@ -310,11 +324,15 @@ class TetrisEnv:
         self.apply_force_move_down()
         self.apply_action_penalty(action)
         self.update_display_matrix()
-
-        outputs = self.prepare_outputs()
         self.apply_sparse_rewards()
 
+        outputs = self.prepare_outputs()
+
         return outputs
+
+    def apply_sparse_rewards(self):
+        self.sparse_score = self.continuous_score - self.previous_score
+        self.previous_score = self.continuous_score - 0.0
 
     def render_console(self):
         # Clear screen the previous frame
@@ -327,7 +345,7 @@ class TetrisEnv:
         # Print the display matrix
         print(display_string)
 
-        print("Score: ", self.previous_score)
+        print("Score: ", self.score)
 
 
 class MultiActionTetrisEnv(TetrisEnv):

@@ -3,13 +3,13 @@ from datetime import datetime
 from typing import Optional
 
 import torch
+from gym import Env
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from tetris_ai.ai.env.env import Env
-from tetris_ai.ai.agent_ppo import AgentPPO
-from tetris_ai.ai.reward_tracker import RewardTracker
+from tetris_ai.ai.rl.agent_ppo import AgentPPO
+from tetris_ai.ai.rl.reward_tracker import RewardTracker
 
 
 class TrainerPPO:
@@ -40,7 +40,7 @@ class TrainerPPO:
 
         # Compute default save dir
         if save_dir is None:
-            save_dir = '.'
+            save_dir = '..'
 
         current_date = f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         save_dir = f'{save_dir}/models/train/{model_name}/{current_date}'

@@ -2,16 +2,14 @@ from typing import List
 
 import torch
 
-from tetris_ai.ai.models.actor_critic import ActorCritic
-from tetris_ai.ai.buffer import TemporaryBuffer, RolloutBuffer
+from tetris_ai.ai.rl.agent_ppo import AgentPPO
+from tetris_ai.ai.rl.buffer import RolloutBuffer
 from tetris_ai.ai.env.torch_env import TorchEnv
 from tetris_ai.ai.env.transformed_env import TransformedEnv
-from tetris_ai.ai.agent_ppo import AgentPPO
-from tetris_ai.ai.models.conv_vision_trasnformer import get_conv_vision_transformer_actor, get_conv_vision_transformer_critic
-from tetris_ai.ai.models.mlp import get_mlp_critic, get_mlp_actor
-from tetris_ai.ai.models.resnet import get_resnet_vmp_critic, get_resnet_vmp_actor
-from tetris_ai.ai.trainer import TrainerPPO
-from tetris_ai.game.tetris import TetrisEnv, MultiActionTetrisEnv
+from tetris_ai.ai.rl.models.actor_critic import ActorCritic
+from tetris_ai.ai.rl.models.resnet import get_resnet_vmp_actor, get_resnet_vmp_critic
+from tetris_ai.ai.rl.trainer import TrainerPPO
+from tetris_ai.game.tetris import MultiActionTetrisEnv
 
 
 def load_model(
