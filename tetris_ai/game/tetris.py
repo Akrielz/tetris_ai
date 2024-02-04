@@ -202,8 +202,10 @@ class TetrisEnv:
                     break
 
         bumpiness_per_column = np.abs(np.diff(max_heights_per_column))
-        mask = bumpiness_per_column > 1
-        self.bumpiness_penalty = -np.sum(bumpiness_per_column[mask]) * 0.05
+        normal_mask = bumpiness_per_column > 1
+        self.bumpiness_penalty = -np.sum(bumpiness_per_column[normal_mask]) * 0.05
+        big_mask = bumpiness_per_column > 4
+        self.bumpiness_penalty -= np.sum(bumpiness_per_column[big_mask]) * 0.1
 
     def place_shape(self):
         self.current_shape.place()

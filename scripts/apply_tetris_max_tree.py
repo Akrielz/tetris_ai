@@ -1,5 +1,3 @@
-from asyncio import sleep
-
 import torch
 
 from tetris_ai.ai.decision_tree.max_tree import MaxDecisionTree
@@ -9,7 +7,6 @@ from tetris_ai.game.visualizer import VisualTetrisEnv
 
 def main():
     # Prepare general info
-    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     device = torch.device('cpu')
 
     # Prepare the environment
@@ -17,7 +14,7 @@ def main():
         height=23, sparse_rewards=True, action_penalty=False, force_down_every_n_moves=0,
     )
     visualizer = VisualTetrisEnv(env, block_dim=20)
-    decision_tree = MaxDecisionTree(env, max_depth=1, num_workers=4, device=device)
+    decision_tree = MaxDecisionTree(env, max_depth=1, num_workers=0, device=device)
 
     # Test the model
     env.reset()
@@ -35,8 +32,6 @@ def main():
         if done:
             env.reset()
             cumulative_reward = 0.0
-
-        # sleep(0.4)
 
 
 if __name__ == "__main__":
