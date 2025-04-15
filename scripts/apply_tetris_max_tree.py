@@ -13,7 +13,7 @@ def main():
     env = MultiActionTetrisEnv(
         height=23, sparse_rewards=True, action_penalty=False, force_down_every_n_moves=0,
     )
-    visualizer = VisualTetrisEnv(env, block_dim=20)
+    visualizer = VisualTetrisEnv(env, block_dim=40)
     decision_tree = MaxDecisionTree(env, max_depth=1, num_workers=0, device=device)
 
     # Test the model

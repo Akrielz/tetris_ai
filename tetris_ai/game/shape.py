@@ -49,10 +49,11 @@ class Shape:
 
     def move(self, direction: Vector2):
         if not self._can_move(direction):
-            return
+            return False
 
         self.current_position += direction
         self.blocks_position = self.blocks_position + direction
+        return True
 
     def _simulate_rotation(self, is_clockwise: bool) -> ListVector2:
         block_positions = self.blocks_position.copy()

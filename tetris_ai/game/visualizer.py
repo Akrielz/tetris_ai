@@ -5,7 +5,7 @@ from tetris_ai.game.tetris import TetrisEnv
 
 
 class VisualTetrisEnv:
-    def __init__(self, env: TetrisEnv, block_dim: int = 20, offset_space: int = 2):
+    def __init__(self, env: TetrisEnv, block_dim: int = 100, offset_space: int = 2):
         pygame.init()
         self.env = env
 

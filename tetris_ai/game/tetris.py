@@ -155,7 +155,7 @@ class TetrisEnv:
                 continue
             i += 1
 
-        self.clear_score += num_cleared_lines ** 2
+        self.clear_score += (num_cleared_lines - 0.5) ** 2
 
     def check_defeat(self):
         positions = self.current_shape.blocks_position
@@ -202,9 +202,9 @@ class TetrisEnv:
                     break
 
         bumpiness_per_column = np.abs(np.diff(max_heights_per_column))
-        normal_mask = bumpiness_per_column > 1
+        normal_mask = bumpiness_per_column > 0
         self.bumpiness_penalty = -np.sum(bumpiness_per_column[normal_mask]) * 0.05
-        big_mask = bumpiness_per_column > 4
+        big_mask = bumpiness_per_column > 5
         self.bumpiness_penalty -= np.sum(bumpiness_per_column[big_mask]) * 0.1
 
     def place_shape(self):
@@ -231,9 +231,7 @@ class TetrisEnv:
             return
 
         if action == Action.DOWN:
-            if self.current_shape.can_move_down():
-                self.current_shape.move(np.array([1, 0]))
-            else:
+            if not self.current_shape.move(np.array([1, 0])):
                 self.place_shape()
             self.moves_since_last_force_down = 0
             return
@@ -243,8 +241,8 @@ class TetrisEnv:
             return
 
         if action == Action.DROP:
-            while self.current_shape.can_move_down():
-                self.current_shape.move(np.array([1, 0]))
+            while self.current_shape.move(np.array([1, 0])):
+                pass
             self.place_shape()
             self.moves_since_last_force_down = 0
             return
